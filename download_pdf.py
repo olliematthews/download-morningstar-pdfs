@@ -24,7 +24,8 @@ def get_ISIN(fund_id, browser):
     '''
     url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + url_id
     browser.get(url)
-    sleep(5)
+    if browser.title == 'Morningstar message':
+        browser.get(url)
     
     # Click go to website
     redirect = browser.find_element_by_id('GoDirectToMS')
@@ -72,11 +73,11 @@ def find_download_pdf(fund_id):
     options = webdriver.ChromeOptions()
     options.add_experimental_option('prefs',  {
         "download.default_directory": download_dir,
-        "download.prompt_for_download": False,
-        "download.directory_upgrade": True,
-        "plugins.plugins_list": [{"enabled": False, "name": "Chrome PDF Viewer"}],
-        "plugins.always_open_pdf_externally" : True,
-        "download.extensions_to_open": "application/pdf"
+        # "download.prompt_for_download": False,
+        # "download.directory_upgrade": True,
+        # "plugins.plugins_list": [{"enabled": False, "name": "Chrome PDF Viewer"}],
+        "plugins.always_open_pdf_externally" : True
+        # "download.extensions_to_open": "application/pdf"
         }
     )
     
@@ -92,6 +93,7 @@ def find_download_pdf(fund_id):
     browser = webdriver.Chrome(str(driver_path), options = options)
     print('Getting ISIN')
     ISIN = get_ISIN(fund_id, browser)
+    print('ISIN is ' + str(ISIN))
     print('Navigating to the PDF')
     url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + url_id + '&tab=12'
 

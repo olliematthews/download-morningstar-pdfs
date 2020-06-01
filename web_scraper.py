@@ -56,20 +56,22 @@ class WebScraper:
         '''
         Gets called if the browser finds itself at a screen where it needs to click on a link to go on to the website (usually the first get request). 
         '''
-        # Click go to website
-        sleep(2)
+        # # Click go to website
+        # sleep(2)
         redirect = self.browser.find_element_by_id('GoDirectToMS')
         redirect.click()
         
-        # Wait a second to load the next page
-        sleep(1)
+        # # Wait a second to load the next page
+        # sleep(1)
 
     def _get(self, url):
         '''
         Runs a get request for a url, with some checks to ensure it works properly.
         '''
+
         self.browser.get(url)
         
+
         # If a 404 error occurs, try waiting and reloading the page, a maximum of 3 times
         wait_time = 0
         n_attempts = 1
@@ -83,6 +85,9 @@ class WebScraper:
         # If you are met by an intro page, call _log_in
         if self.browser.current_url.startswith('https://www.morningstar.be/IntroPage'):
             self._log_in()
+            
+        self.browser.implicitly_wait(10) # seconds
+
                 
     def get_ISIN(self, fund_id):
         '''
@@ -102,7 +107,7 @@ class WebScraper:
         url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + fund_id
         self._get(url)
         
-        # Find the table with the ISIN
+        # Find the table with the ISIN (note we )
         div = self.browser.find_element_by_id('overviewQuickstatsDiv')
         table = div.find_element_by_tag_name('table')
         
@@ -149,6 +154,7 @@ class WebScraper:
             for col in cols:
                 if col.text == 'Verslagen':
                     flag = True
+                    
         # Take the link from that row
         document_link = row_with_doc.find_element_by_tag_name('a').get_attribute('href')
         self._get(document_link)

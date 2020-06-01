@@ -22,7 +22,7 @@ def get_ISIN_download_pdf(fund_ids):
 
     '''
     
-    scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', False)
+    scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', True)
     for fund_id in fund_ids:
         try:    
             fund_id = str(fund_id)

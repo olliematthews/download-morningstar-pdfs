@@ -200,6 +200,7 @@ class WebScraper:
             sleep(1)
         
         print('Renaming the download files')
+        print(self.download_renames)
         # If the file is already there, just delete the downloaded file instead
         for download_path, save_path in self.download_renames.items():
             try:

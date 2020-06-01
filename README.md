@@ -15,4 +15,4 @@ Before running the code, download the binaries for the chromedriver for your ver
 
 Run 'download_pdf.py', with the list of fund ids you want to download. The script will start a browser which finds the ISIN numbers for each fund, and downloads the most recent report. It saves the reports as PDFs to <current directory>/ downloads, and writes a csv file with the ISIN numbers for each fund.
 
-By default the browser is suppressed by running it in 'headless' mode, but setting this to False will allow the user to see the path taken by the browser.
+The browser can be suppressed by running it in headless mode (by setting 'headless = True' in the initialiser). Performance can be more buggy in this case, however, so the user is advised to keep 'headless = False'.

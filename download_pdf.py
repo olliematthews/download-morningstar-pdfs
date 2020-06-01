@@ -1,7 +1,6 @@
 '''
 Function which can take a link to a fund on the Morningstar website, and download the most recent Report.
 '''
-import requests
 from pathlib import Path
 import os
 from web_scraper import WebScraper

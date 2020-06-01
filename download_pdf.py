@@ -7,7 +7,45 @@ import os
 from selenium import webdriver
 from time import sleep
 
+def get_ISIN(fund_id, browser):
+    '''
+    Get the ISIN for the fund.
 
+    Parameters
+    ----------
+    fund_id : str
+        The id for the relevant fund, found after "id=" in the url.
+    browser : webdriver
+
+    Returns
+    -------
+    ISIN : int
+
+    '''
+    url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + url_id
+    browser.get(url)
+    sleep(5)
+    
+    # Click go to website
+    redirect = browser.find_element_by_id('GoDirectToMS')
+    redirect.click()
+    
+    sleep(1)
+    div = browser.find_element_by_id('overviewQuickstatsDiv')
+    table = div.find_element_by_tag_name('table')
+    rows = table.find_elements_by_tag_name('tr')
+    for row in rows:
+        cols = row.find_elements_by_tag_name('td')
+        for col in cols:
+            if col.text == 'ISIN':
+                row_with_ISIN = row
+                
+    ISIN = row_with_ISIN.find_element_by_class_name('text').text
+    return ISIN
+    
+    
+    
+    
 def find_download_pdf(fund_id):
     '''
     Locate and download the most recent report for a fund.
@@ -19,7 +57,7 @@ def find_download_pdf(fund_id):
 
     Returns
     -------
-    None.
+    ISIN : int
 
     '''
     try:    
@@ -52,16 +90,13 @@ def find_download_pdf(fund_id):
     # Initialise a webdriver with the options set
     driver_path = Path('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver')
     browser = webdriver.Chrome(str(driver_path), options = options)
-
+    print('Getting ISIN')
+    ISIN = get_ISIN(fund_id, browser)
     print('Navigating to the PDF')
     url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + url_id + '&tab=12'
 
     browser.get(url)
-    sleep(5)
     
-    # Click go to website
-    redirect = browser.find_element_by_id('GoDirectToMS')
-    redirect.click()
     
     sleep(2)
     # Find the link to the desired document
@@ -112,12 +147,15 @@ def find_download_pdf(fund_id):
         print('File already exists - download aborted.')
         os.remove('download.pdf')
     
-
+    return ISIN
 
 
 if __name__ == '__main__':
     url_id = 'F00000YJ90'
     find_download_pdf(url_id)
+    url_id = 'F000011JP3'
+    find_download_pdf(url_id)
+
 
 
 

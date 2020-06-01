@@ -11,9 +11,22 @@ from time import sleep
 
 
 class WebScraper:
-    def __init__(self, driver_path):
+    def __init__(self, driver_path, headless = True):
         '''
-        Driver path is the path to the driver for the chromedriver binaries e.g. C:/.../chromedriver
+        Initialiser
+
+        Parameters
+        ----------
+        driver_path : str
+            The path to the driver for the chromedriver binaries e.g. C:/.../chromedriver
+
+        headless : boolean, optional
+            If False, the browser is not run in headless mode. The default is True.
+
+        Returns
+        -------
+        None.
+
         '''
         self.driver_path = driver_path
 
@@ -28,16 +41,18 @@ class WebScraper:
             }
         )
         
-        '''
-        # TODO - go headless.
         
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-        '''
+        if headless:
+        
+            options.add_argument('--headless')
+            options.add_argument('--disable-gpu')
+        
         
         # Initialise a webdriver with the options set
         self.browser = webdriver.Chrome(str(driver_path), options = options)
-
+        
+        # Keep track of what the pdfs are downloaded as so that you can rename them after
+        self.download_renames = {}
         
     def _log_in(self):
         '''
@@ -149,39 +164,49 @@ class WebScraper:
                 break
             except:
                 sleep(wait_time)
-                
-        self.download_name = 'download.pdf'
-        if self.download_name in os.listdir():
-            i = 1
-            while self.download_name in os.listdir():
-                self.download_name = 'download (' + str(i) + ').pdf'
-                i += 1
-        
+                        
         self.browser.get(pdf_url)
-        
         print('Downloading...')
         
-        # Wait for download to come through before returning
-        while not self.download_name in os.listdir():
+        download_name = []
+        # Wait until download comes up in your directory
+        while(len(download_name) == 0):
+            # Find the name the file is being downloaded as
+            downloading_names = [filename for filename in os.listdir() if filename.endswith('crdownload')]
+            download_name = [filename for filename in downloading_names if not filename in self.download_renames.keys()]
             sleep(0.5)
-        print('Downloaded')
+        download_name = download_name[0].replace('.crdownload','')
         
         if not save_path is None:
-            self.rename_download(save_path)
+            self.download_renames.update({download_name : save_path})
         
-    def rename_download(self, save_path):
+    def rename_downloads(self):
         '''
         Rename the downloaded file. If it is already there, then just delete the download.
-        
-        Parameters
-        ----------
-        save_path : str
         '''
-        print('Moving the file to ' + save_path)
+        print('Waiting for all downloads to finish')
+        flag = False
+        while not flag:
+            flag = True
+            os_files = os.listdir()
+            # Check that all the download files are in the current directory
+            for filename in self.download_renames.keys():
+                flag = flag and filename in os_files
+                
+            sleep(1)
+        
+        print('Renaming the download files')
         # If the file is already there, just delete the downloaded file instead
-        try:
-            os.rename('download.pdf', save_path)
-        except FileExistsError:
-            print('File already exists - removing downloaded file.')
-            os.remove('download.pdf')
+        for download_path, save_path in self.download_renames.items():
+            try:
+                os.rename(download_path, save_path)
+            except FileExistsError:
+                os.remove(download_path)
+            
+            
+    def kill(self):
+        '''
+        Close the browser
+        '''
+        self.browser.quit()
             

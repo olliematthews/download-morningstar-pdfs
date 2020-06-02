@@ -88,7 +88,70 @@ class WebScraper:
             
         self.browser.implicitly_wait(10) # seconds
 
-                
+    def get_fund_list(self):
+        '''
+        Gets the list of funds from https://towardssustainability.be/en/Investment-Product
+        This could be used for a different set of funds, but the find requests would need to be tweaked
+
+        Returns
+        -------
+        fund_list : list
+            A list of funds which can be searched on the morningstar website
+
+        '''
+        url = 'https://towardssustainability.be/en/Investment-Product'
+        self.browser.get(url)
+        fund_items = self.browser.find_elements_by_class_name('views-field-title')
+        fund_hyperrefs = []
+        for fund_item in fund_items:
+            try:
+                fund_hyperrefs.append(fund_item.find_element_by_tag_name('a'))
+            except:
+                pass
+        fund_list = [hyperref.text for hyperref in fund_hyperrefs]
+        return fund_list
+    
+    def get_fund_id(self, search_string):
+        '''
+        Searches morningstar to find the fund id for a string. If there are multiple search result, picks the top one and reports the choice. Returns none if there are no results.
+
+        Parameters
+        ----------
+        search_string : str
+            The string used to query the fund.
+
+        Returns
+        -------
+        fund_id : int
+            The unique fund_id used to identify the fund on the website.
+
+        '''
+        
+        # Format the search query into a url
+        print('Getting fund id for ' + search_string)
+        search_url = search_string.replace(' ', '%20')
+        url = 'https://www.morningstar.be/be/funds/SecuritySearchResults.aspx?search=' + search_url + '&type='
+        self._get(url)
+        
+        # Get all search results
+        results = self.browser.find_elements_by_class_name('searchLink')
+        # Pick the top result
+        if len(results) == 0:
+            print('No results for "' + search_string + '"')
+            return None
+        
+        chosen_result = results[0]
+        hyperref = chosen_result.find_element_by_tag_name('a')
+        n_results = len(results)
+        if n_results > 1:
+            print('Search found ' + str(n_results) + ' results. Picked ' + hyperref.text)
+        href_link = hyperref.get_attribute('href')
+        # Find the id in the hyperref
+        index = href_link.index('id=')
+        return href_link[index + 3 :]
+            
+        
+        
     def get_ISIN(self, fund_id):
         '''
         Get the ISIN for the fund.
@@ -146,6 +209,7 @@ class WebScraper:
         
         # We go through the rows of the table until we find "Verslagen" the next row then contains the most recent document
         flag = False
+        row_with_doc = None
         for row in rows:
             if flag:
                 row_with_doc = row
@@ -155,6 +219,9 @@ class WebScraper:
                 if col.text == 'Verslagen':
                     flag = True
                     
+        if row_with_doc is None:
+            print('No reports available to download for this fund')
+            return None
         # Take the link from that row
         document_link = row_with_doc.find_element_by_tag_name('a').get_attribute('href')
         self._get(document_link)
@@ -183,6 +250,7 @@ class WebScraper:
         
         if not save_path is None:
             self.download_renames.update({download_name : save_path})
+        return 'success'
         
     def rename_downloads(self):
         '''

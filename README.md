@@ -13,6 +13,14 @@ Before running the code, download the binaries for the chromedriver for your ver
 
 ### Instructions
 
-Run 'download_pdf.py', with the list of fund ids you want to download. The script will start a browser which finds the ISIN numbers for each fund, and downloads the most recent report. It saves the reports as PDFs to <current directory>/ downloads, and writes a csv file with the ISIN numbers for each fund.
+Run 'download_pdf.py'. The script will start a browser which finds the fund id, then the ISIN numbers for each fund listed on https://towardssustainability.be/en/Investment-Product, and then downloads the most recent report. It saves the reports as PDFs to <current directory>/ downloads, and writes a csv file with the ISIN numbers for each fund.
 
 The browser can be suppressed by running it in headless mode (by setting 'headless = True' in the initialiser). Performance can be more buggy in this case, however, so the user is advised to keep 'headless = False'.
+
+
+### Potential Improvements
+
+The funds are often not found on the Morningstar website. This can happen even if the fund is there, as the name might be slightly different to that listed on the list of funds. For example, replacing 'wf' with 'world fund' can get higher results. A more robust way of checking this would be to search again for unfound funds, but with some of the fund name words omitted, to see if the fund can be found.
+
+
+Another problem is funds not having any reports on the website. This seems unavoidable, however.

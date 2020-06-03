@@ -8,6 +8,26 @@ from numpy import genfromtxt
 import csv
 import pickle
 
+def write_ISIN(ISIN_file, fund, fund_id, ISIN):
+    '''
+    Write a row to the ISIN file
+
+    Parameters
+    ----------
+    ISIN_file : str
+    fund : str
+    fund_id : str
+    ISIN : str
+
+    Returns
+    -------
+    None.
+
+    '''
+    with open(csv_file, 'a', newline = '') as file:
+        writer = csv.writer(file)
+        writer.writerow([fund, 'Not Found'])
+    
 def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
     '''
     Locate and download the most recent report for a fund, also save ISIN numbers.
@@ -28,8 +48,16 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
     ISINs = {}
     n_funds = len(funds)
     for i, fund in enumerate(funds):
+        nospace_fund = fund.replace(' ', '_')
         # Rename any downloaded pdfs as you go
-        scraper.rename_downloads_if_done()
+        renamed_files = scraper.rename_downloads_if_done()
+        # Add any renamed files to the ISIN doc
+        if len(renamed_files) > 0:
+            for fund_path in renamed_files:
+                temp_fund_name = fund_path.replace('./pdf_downloads/','').replace('.pdf','')
+                fund_id, ISIN = ISINs.pop(temp_fund_name)
+                write_ISIN(ISIN_file, fund, fund_id, ISIN)
+                
         
         print('\n\n')
         completion = round(i/n_funds * 100, 1)
@@ -38,17 +66,18 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
         # Get the fund id
         fund_id = scraper.get_fund_id(fund)
         if fund_id is None:
-            ISINs.update({fund.replace(' ', '_') : 'Not Found'})
-            continue
-        
-        
-        ISIN = scraper.get_ISIN(fund_id)
-        scraper.download_pdf(fund_id, './pdf_downloads/' + fund.replace(' ', '_') + '.pdf')
-
-        # Write the fund ISIN into the csv
-        with open(csv_file, 'a', newline = '') as file:
-            writer = csv.writer(file)
-            writer.writerow([fund, ISIN])
+            # If you can't find the fund, write not found in the ISIN doc
+            write_ISIN(ISIN_file, fund, 'Not Found', 'Not Found')
+        else:
+            ISIN = scraper.get_ISIN(fund_id)
+            success = scraper.download_pdf(fund_id, './pdf_downloads/' + nospace_fund + '.pdf')
+            if not success:
+                # Write the fund ISIN into the csv straight away if there is no pdf. Otherwise, wait until the
+                # pdf is found.
+                write_ISIN(ISIN_file, fund, fund_id, ISIN)
+            else:
+                # If you are waiting for the pdf to download, store the ISIN temporarily
+                ISINs.update({nospace_fund : [fund_id, ISIN]})
         
 
     scraper.rename_downloads()
@@ -59,6 +88,8 @@ if __name__ == '__main__':
     headless = False
     csv_file = 'ISINs.csv'
     
+    # Remove any uncompleted downloads
+    [os.remove(file) for file in os.listdir() if file.endswith('.crdownload') or file.endswith('.pdf')]
     # Create download folder
     if not os.path.exists('./pdf_downloads'):
         os.mkdir('./pdf_downloads')

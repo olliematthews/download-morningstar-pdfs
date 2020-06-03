@@ -239,7 +239,11 @@ class WebScraper:
         fund_id : int
         save_path : str, optional
             If not specified, the file will be left saved as 'download.pdf'. The default is None.
-
+            
+        Returns
+        -------
+        success : boolean
+            True if the pdf is found
         '''
         print('Navigating to the PDF')
         url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + fund_id + '&tab=12'
@@ -264,7 +268,8 @@ class WebScraper:
                     
         if row_with_doc is None:
             print('No reports available to download for this fund')
-            return None
+            return False
+        
         # Take the link from that row
         document_link = row_with_doc.find_element_by_tag_name('a').get_attribute('href')
         self._get(document_link)
@@ -293,7 +298,7 @@ class WebScraper:
         
         if not save_path is None:
             self.download_renames.update({download_name : save_path})
-        return 'success'
+        return True
         
     def rename_downloads(self):
         '''
@@ -321,17 +326,26 @@ class WebScraper:
     def rename_downloads_if_done(self):
         '''
         Rename the downloaded files if they are done downloading
+        Returns
+        -------
+        renamed - list:
+            A list containing the downloaded files which were renamed
         '''
-        
+        renamed = []
+        to_pop = []
         # If the file is already there, just delete the downloaded file instead
         for download_path, save_path in self.download_renames.items():
             if os.path.exists(download_path):
                 print(f'Renaming {download_path} to {save_path}')
+                renamed.append(self.download_renames[download_path])
+                to_pop.append(download_path)
                 try:
                     os.rename(download_path, save_path)
                 except FileExistsError:
                     os.remove(download_path)
-            
+        for key in to_pop:
+            self.download_renames.pop(key)
+        return renamed
             
     def kill(self):
         '''

@@ -91,6 +91,6 @@ if __name__ == '__main__':
     '''
     If you want to test run on only some funds, try putting e.g. "uncompleted_funds[:10]"
     '''
-    get_ISIN_download_pdf(uncompleted_funds[10:], headless)
+    get_ISIN_download_pdf(uncompleted_funds[10:20], headless)
     
             

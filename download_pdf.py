@@ -43,7 +43,7 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
 
     '''
     
-    scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless)
+    scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless = headless)
         
     ISINs = {}
     n_funds = len(funds)
@@ -64,12 +64,11 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
         print(f'Fund {i} of {n_funds} - {completion}% complete')
 
         # Get the fund id
-        fund_id = scraper.get_fund_id(fund)
+        fund_id, ISIN = scraper.get_fund_id_ISIN(fund)
         if fund_id is None:
             # If you can't find the fund, write not found in the ISIN doc
             write_ISIN(ISIN_file, fund, 'Not Found', 'Not Found')
         else:
-            ISIN = scraper.get_ISIN(fund_id)
             success = scraper.download_pdf(fund_id, './pdf_downloads/' + nospace_fund + '.pdf')
             if not success:
                 # Write the fund ISIN into the csv straight away if there is no pdf. Otherwise, wait until the
@@ -85,7 +84,7 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
 
 
 if __name__ == '__main__':
-    headless = False
+    headless = True
     csv_file = 'ISINs.csv'
     
     # Remove any uncompleted downloads
@@ -100,7 +99,7 @@ if __name__ == '__main__':
         funds = pickle.load(open('funds.p','rb'))
     else:
         # Put your path to the chromedrive binaries here!!!
-        scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless)
+        scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless = headless)
         funds = scraper.get_fund_list()
         scraper.kill()
         pickle.dump(funds, open('funds.p','wb'))
@@ -122,6 +121,6 @@ if __name__ == '__main__':
     '''
     If you want to test run on only some funds, try putting e.g. "uncompleted_funds[:10]"
     '''
-    get_ISIN_download_pdf(uncompleted_funds[10:20], headless)
+    get_ISIN_download_pdf(uncompleted_funds, headless = headless)
     
             

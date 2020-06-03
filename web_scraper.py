@@ -6,10 +6,13 @@ Contains WebScraper, a class for getting the ISIN number and downloading the lat
 import os
 from selenium import webdriver
 from time import sleep
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions
 
 
 class WebScraper:
-    def __init__(self, driver_path, headless = True):
+    def __init__(self, driver_path, headless = True, wait_time = 5):
         '''
         Initialiser
 
@@ -26,8 +29,7 @@ class WebScraper:
         None.
 
         '''
-        self.driver_path = driver_path
-
+        self.wait_time = wait_time
         # We first download the file to the current working directory, then move it
         download_dir = str(os.path.realpath(os.getcwd()))
         
@@ -58,6 +60,12 @@ class WebScraper:
         '''
         # # Click go to website
         # sleep(2)
+        WebDriverWait(self.browser, self.wait_time).until(
+          expected_conditions.presence_of_element_located(
+            (By.ID, 'GoDirectToMS'),
+          )
+        )
+
         redirect = self.browser.find_element_by_id('GoDirectToMS')
         redirect.click()
         
@@ -86,7 +94,6 @@ class WebScraper:
         if self.browser.current_url.startswith('https://www.morningstar.be/IntroPage'):
             self._log_in()
             
-        self.browser.implicitly_wait(10) # seconds
 
     def get_fund_list(self):
         '''
@@ -112,7 +119,7 @@ class WebScraper:
         return fund_list
     
     
-    def get_fund_id(self, search_string):
+    def get_fund_id_ISIN(self, search_string):
         '''
         Searches morningstar to find the fund id for a string. If there are multiple search result, picks the top one and reports the choice. Returns none if there are no results.
 
@@ -127,7 +134,9 @@ class WebScraper:
         -------
         fund_id : int
             The unique fund_id used to identify the fund on the website.
-
+        ISIN : str
+            The ISIN for the fund
+            
         '''
         
         # Format the search query into a url
@@ -135,13 +144,18 @@ class WebScraper:
         search_url = search_string.replace(' ', '%20')
         url = 'https://www.morningstar.be/be/funds/SecuritySearchResults.aspx?search=' + search_url + '&type='
         self._get(url)
-        
+        WebDriverWait(self.browser, self.wait_time).until(
+          expected_conditions.presence_of_element_located(
+            (By.ID, 'ctl00_MainContent_Label2'),
+          )
+        )
+
         # Get all search results
         results = self.browser.find_elements_by_class_name('searchLink')
         # Pick the top result
         if len(results) == 0:
             print('No search results found for "' + search_string + '"')
-            return None
+            return None, None
             # print('No results for "' + search_string + '". Trying search again with word omissions.')
             # results = self._retry_search(search_string)
             # if results is None:
@@ -149,6 +163,7 @@ class WebScraper:
             #     return None
         
         chosen_result = results[0]
+        ISIN = self.browser.find_element_by_class_name('searchIsin').find_element_by_tag_name('span').text
         hyperref = chosen_result.find_element_by_tag_name('a')
         n_results = len(results)
         if n_results > 1:
@@ -156,7 +171,7 @@ class WebScraper:
         href_link = hyperref.get_attribute('href')
         # Find the id in the hyperref
         index = href_link.index('id=')
-        return href_link[index + 3 :]
+        return href_link[index + 3 :], ISIN
             
     
     def _retry_search(self, search_string):
@@ -183,6 +198,11 @@ class WebScraper:
             url = 'https://www.morningstar.be/be/funds/SecuritySearchResults.aspx?search=' + search_url + '&type='
             self._get(url)
             
+            WebDriverWait(self.browser, self.wait_time).until(
+              expected_conditions.presence_of_element_located(
+                (By.CLASS_NAME, 'searchLink'),
+              )
+            )
             # Get all search results
             results = self.browser.find_elements_by_class_name('searchLink')
             if len(results) > 0:
@@ -195,40 +215,6 @@ class WebScraper:
             least_results = [v for k, v in sorted(search_results.items(), key=lambda item: len(item))][0]
             return least_results
         
-    def get_ISIN(self, fund_id):
-        '''
-        Get the ISIN for the fund.
-    
-        Parameters
-        ----------
-        fund_id : str
-            The id for the relevant fund, found after "id=" in the url.
-        
-        Returns
-        -------
-        ISIN : int
-        '''
-        print('Getting ISIN')
-
-        url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + fund_id
-        self._get(url)
-        
-        # Find the table with the ISIN (note we )
-        div = self.browser.find_element_by_id('overviewQuickstatsDiv')
-        table = div.find_element_by_tag_name('table')
-        
-        # Find the row with the ISIN
-        rows = table.find_elements_by_tag_name('tr')
-        for row in rows:
-            cols = row.find_elements_by_tag_name('td')
-            for col in cols:
-                if col.text == 'ISIN':
-                    row_with_ISIN = row
-        # Return the ISIN
-        ISIN = row_with_ISIN.find_element_by_class_name('text').text
-        print('ISIN is ' + str(ISIN))
-
-        return ISIN
 
     def download_pdf(self, fund_id, save_path = None):
         '''
@@ -249,7 +235,13 @@ class WebScraper:
         url = 'https://www.morningstar.be/be/funds/snapshot/snapshot.aspx?id=' + fund_id + '&tab=12'
     
         self._get(url)
-        
+
+        WebDriverWait(self.browser, self.wait_time).until(
+          expected_conditions.presence_of_element_located(
+            (By.TAG_NAME, 'table'),
+          )
+        )
+
         # Find the link to the desired document
         tables = self.browser.find_elements_by_tag_name('table')
         rows = tables[1].find_elements_by_tag_name('tr')
@@ -275,8 +267,9 @@ class WebScraper:
         self._get(document_link)
     
         # Now we just find the link to the pdf on the document page, and download. We might need to try this a few times while the page loads
-        wait_time = 1
+        wait_time = 0.5
         n_attempts = 1
+        
         while n_attempts < 3:
             try:
                 pdf_url = self.browser.find_element_by_id('documentFrame').get_attribute("src")

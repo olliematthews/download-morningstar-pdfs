@@ -111,6 +111,7 @@ class WebScraper:
         fund_list = [hyperref.text for hyperref in fund_hyperrefs]
         return fund_list
     
+    
     def get_fund_id(self, search_string):
         '''
         Searches morningstar to find the fund id for a string. If there are multiple search result, picks the top one and reports the choice. Returns none if there are no results.
@@ -119,6 +120,8 @@ class WebScraper:
         ----------
         search_string : str
             The string used to query the fund.
+        # require_permission : boolean
+        #     If True, will ask for permission before picking a fund.
 
         Returns
         -------
@@ -137,8 +140,13 @@ class WebScraper:
         results = self.browser.find_elements_by_class_name('searchLink')
         # Pick the top result
         if len(results) == 0:
-            print('No results for "' + search_string + '"')
+            print('No search results found for "' + search_string + '"')
             return None
+            # print('No results for "' + search_string + '". Trying search again with word omissions.')
+            # results = self._retry_search(search_string)
+            # if results is None:
+            #     print('Still no results found. Moving onto next fund.')
+            #     return None
         
         chosen_result = results[0]
         hyperref = chosen_result.find_element_by_tag_name('a')
@@ -150,7 +158,42 @@ class WebScraper:
         index = href_link.index('id=')
         return href_link[index + 3 :]
             
+    
+    def _retry_search(self, search_string):
+        '''
+        An attempt to find funds where the name is slightly different on the website than listed elsewhere.
+        We drop one word at a time from the search string, and see if any search results come up. 
+        If results come up for multiple searches, we take the top result for the search string that yields the fewest results.
+
+        Parameters
+        ----------
+        search_string : str
+            The (unsuccessful) search string
+
+        Returns
+        -------
+        fund_id : int
+            None if no fund is found.
+
+        '''
+        split_string = search_string.split(' ')
+        search_results = {}
+        for word in split_string:
+            search_url = '%20'.join([w for w in split_string if not w == word])
+            url = 'https://www.morningstar.be/be/funds/SecuritySearchResults.aspx?search=' + search_url + '&type='
+            self._get(url)
+            
+            # Get all search results
+            results = self.browser.find_elements_by_class_name('searchLink')
+            if len(results) > 0:
+                search_results.update({word : results})
+            
+        if len(search_results) == 0:
+            return None
         
+        else:
+            least_results = [v for k, v in sorted(search_results.items(), key=lambda item: len(item))][0]
+            return least_results
         
     def get_ISIN(self, fund_id):
         '''
@@ -268,13 +311,26 @@ class WebScraper:
             sleep(1)
         
         print('Renaming the download files')
-        print(self.download_renames)
         # If the file is already there, just delete the downloaded file instead
         for download_path, save_path in self.download_renames.items():
             try:
                 os.rename(download_path, save_path)
             except FileExistsError:
                 os.remove(download_path)
+
+    def rename_downloads_if_done(self):
+        '''
+        Rename the downloaded files if they are done downloading
+        '''
+        
+        # If the file is already there, just delete the downloaded file instead
+        for download_path, save_path in self.download_renames.items():
+            if os.path.exists(download_path):
+                print(f'Renaming {download_path} to {save_path}')
+                try:
+                    os.rename(download_path, save_path)
+                except FileExistsError:
+                    os.remove(download_path)
             
             
     def kill(self):

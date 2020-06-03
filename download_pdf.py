@@ -8,49 +8,67 @@ from numpy import genfromtxt
 import csv
 import pickle
 
-def get_ISIN_download_pdf(funds, headless = False):
+def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
     '''
-    Locate and download the most recent report for a fund.
+    Locate and download the most recent report for a fund, also save ISIN numbers.
 
     Parameters
     ----------
     funds : list
         The funds to be found.
-
-    Returns
-    -------
-    ISIN : int
+    ISIN_file : str
+        The filename to which ISINs are written
+    headless : boolean
+        If True, browser is run headlessly
 
     '''
     
     scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless)
         
     ISINs = {}
-    for fund in funds:
+    n_funds = len(funds)
+    for i, fund in enumerate(funds):
+        # Rename any downloaded pdfs as you go
+        scraper.rename_downloads_if_done()
+        
+        print('\n\n')
+        completion = round(i/n_funds * 100, 1)
+        print(f'Fund {i} of {n_funds} - {completion}% complete')
+
+        # Get the fund id
         fund_id = scraper.get_fund_id(fund)
         if fund_id is None:
             ISINs.update({fund.replace(' ', '_') : 'Not Found'})
             continue
+        
+        
         ISIN = scraper.get_ISIN(fund_id)
         scraper.download_pdf(fund_id, './pdf_downloads/' + fund.replace(' ', '_') + '.pdf')
-        ISINs.update({fund.replace(' ', '_') : ISIN})
 
-    # Make sure there is a directory to save to
-    if not os.path.exists('./pdf_downloads'):
-        os.mkdir('./pdf_downloads')
+        # Write the fund ISIN into the csv
+        with open(csv_file, 'a', newline = '') as file:
+            writer = csv.writer(file)
+            writer.writerow([fund, ISIN])
+        
+
     scraper.rename_downloads()
     scraper.kill()
-    return ISINs
 
 
 if __name__ == '__main__':
     headless = False
     csv_file = 'ISINs.csv'
-
+    
+    # Create download folder
+    if not os.path.exists('./pdf_downloads'):
+        os.mkdir('./pdf_downloads')
+        
+        
     # If this is the first time running, you need to get the fund names. If not you can load a save file.
     if os.path.exists('funds.p'):
         funds = pickle.load(open('funds.p','rb'))
     else:
+        # Put your path to the chromedrive binaries here!!!
         scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless)
         funds = scraper.get_fund_list()
         scraper.kill()
@@ -73,11 +91,6 @@ if __name__ == '__main__':
     '''
     If you want to test run on only some funds, try putting e.g. "uncompleted_funds[:10]"
     '''
-    ISINs = get_ISIN_download_pdf(uncompleted_funds, headless)
+    get_ISIN_download_pdf(uncompleted_funds[10:], headless)
     
             
-    # Write the ISINs to a csv
-    with open('ISINs.csv', 'a', newline = '') as file:
-        writer = csv.writer(file)
-        for fund_id, ISIN in ISINs.items():
-            writer.writerow([fund_id, ISIN])

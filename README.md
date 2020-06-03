@@ -20,6 +20,8 @@ The browser output can be seen by changing headless to False.
 
 ### Potential Improvements
 
+The code could easily be made to run on multiple processes, as it is mostly parallel (some care would need to be taken in locking csv files when writing to them and locking when getting the download names). This would improve speed, if that is desired. 
+
 The funds are often not found on the Morningstar website. This can happen even if the fund is there, as the name might be slightly different to that listed on the list of funds. For example, replacing 'wf' with 'world fund' can get higher results. A more robust way of checking this would be to search again for unfound funds, but with some of the fund name words omitted, to see if the fund can be found.
 
 

@@ -53,14 +53,7 @@ class WebScraper:
         
         # Keep track of what the pdfs are downloaded as so that you can rename them after
         self.download_renames = {}
-        
-        # Go to search page
-        self.browser.get('https://www.kbc.be/corporate/en/product/investments/fund-finder.html')
-        
-        # Switch to frame
-        self.frame = self.browser.find_element_by_tag_name('iframe')
-        self.browser.switch_to.frame(self.frame)
-            
+                    
         
     def rename_downloads(self):
         '''
@@ -99,8 +92,18 @@ class WebScraper:
         Returns
         -------
         ISIN : int
+        success : bool
         '''
+        # First, we need to go to the search page and switch to the correct frame
+        self.browser.get('https://www.kbc.be/corporate/en/product/investments/fund-finder.html')
+        
+        # Switch to frame
+        self.frame = self.browser.find_element_by_tag_name('iframe')
+        self.browser.switch_to.frame(self.frame)
+        
+        # Make search
         search_field = self.browser.find_element_by_id('FinderIsin')
+        search_field.clear()
         search_field.send_keys(fund)
         search_button = self.browser.find_element_by_id('searchbutton')
         search_button.click()
@@ -120,7 +123,8 @@ class WebScraper:
                 top_result.click()
                 break
             except:
-                pass
+                print('Fund not found')
+                return None, False
             
         # Wait for page to load
         while(1):
@@ -135,7 +139,7 @@ class WebScraper:
         annual_reports =  self.browser.find_elements_by_xpath('//*[contains(text(), "Annual report")]')
         if len(annual_reports) == 0:
             print('No annual reports found')
-            return ISIN
+            return ISIN, False
         else:
             print('Downloading...')
             annual_reports[0].click()   
@@ -146,13 +150,35 @@ class WebScraper:
                 # Find the name the file is being downloaded as
                 downloading_names = [filename for filename in os.listdir() if filename.endswith('crdownload')]
                 download_name = [filename for filename in downloading_names if not filename in self.download_renames.keys()]
-                sleep(0.5)
             download_name = download_name[0].replace('.crdownload','')
             if not save_path is None:
                 self.download_renames.update({download_name : save_path})
-            return ISIN
+            return ISIN, True
         
-        
+    def rename_downloads_if_done(self):
+        '''
+        Rename the downloaded files if they are done downloading
+        Returns
+        -------
+        renamed - list:
+            A list containing the downloaded files which were renamed
+        '''
+        renamed = []
+        to_pop = []
+        # If the file is already there, just delete the downloaded file instead
+        for download_path, save_path in self.download_renames.items():
+            if os.path.exists(download_path):
+                print(f'Renaming {download_path} to {save_path}')
+                renamed.append(self.download_renames[download_path])
+                to_pop.append(download_path)
+                try:
+                    os.rename(download_path, save_path)
+                except FileExistsError:
+                    os.remove(download_path)
+        for key in to_pop:
+            self.download_renames.pop(key)
+        return renamed
+
     def kill(self):
         '''
         Close the browser

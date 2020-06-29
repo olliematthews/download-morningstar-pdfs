@@ -1,0 +1,56 @@
+Horizon KBC ExpertEase SRI Defensive Balanced
+Horizon KBC ExpertEase SRI Defensive Tolerant
+Horizon KBC ExpertEase SRI Dynamic
+Horizon KBC ExpertEase SRI Dynamic Balanced
+Horizon KBC ExpertEase SRI Dynamic Tolerant
+Horizon KBC Expertease SRI Highly Dynamic Tolerant
+KBC Bonds SRI High Interest
+KBC Bonds SRI Strategic Accents
+KBC Bonds SRI Strategic Corporate Bonds
+KBC Bonds SRI Strategic Currencies
+KBC Bonds SRI Strategic EMU
+KBC Bonds SRI Strategic EMU Short
+KBC Bonds SRI Strategic EMU Short Medium
+KBC Bonds SRI Strategic Euro Corporate Bonds
+KBC Eco Fund Alternative Energy
+KBC Eco Fund Climate Change
+KBC Eco Fund Impact Investing
+KBC Eco Fund Water
+KBC Eco Fund World
+KBC Equity Fund SRI Asia Pacific
+KBC Equity Fund SRI Emerging Markets
+KBC Equity Fund SRI EMU Small & Medium Caps
+KBC Equity Fund SRI Eurozone
+KBC Equity Fund SRI Minimum Variance
+KBC Equity Fund SRI North America
+KBC Equity Fund SRI Rest of Europe
+KBC Equity Fund SRI USA & Canada
+KBC Equity Fund SRI World
+KBC Institutional Fund Global SRI Defensive 1
+KBC Institutional Fund SRI Euro Bonds
+KBC Institutional Fund SRI Euro Equities
+KBC Institutional Fund SRI North America
+KBC Institutional Fund SRI World Equity
+KBC Master Fund Business Comfort SRI Defensive
+KBC Master Fund Business Comfort SRI Dynamic
+KBC Multi Interest SRI Cash 3 Month Duration
+KBC Multi Interest SRI Cash 4 Month Duration
+KBC Multi Interest SRI Cash Standard Duration
+KBC Participation SRI Cash Plus
+KBC Participation SRI Corporate Bonds
+KBC Renta Decarenta
+KBC Renta Nokrenta
+KBC Renta NZD-Renta
+KBC Renta Sekarenta
+KBC Renta Sterlingrenta
+KBC-Life ExpertEase SRI Defensive Balanced
+KBC-Life ExpertEase SRI Defensive Conservative
+KBC-Life ExpertEase SRI Defensive Tolerant
+KBC-Life ExpertEase SRI Dynamic Balanced
+KBC-Life ExpertEase SRI Dynamic Tolerant
+KBC-Life ExpertEase SRI Neutral
+KBC-Life Flexible Portfolio SRI January
+KBC-Life Managed Portfolio Comfort SRI Defensive
+KBC-Life Managed Portfolio Comfort SRI Dynamic
+KBC-Life SRI Defensive
+KBC-Life SRI Neutral

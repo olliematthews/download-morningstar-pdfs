@@ -1,5 +1,5 @@
 '''
-Function which can take a link to a fund on the Morningstar website, and download the most recent Report.
+Will find a kbc fund
 '''
 from pathlib import Path
 import os
@@ -52,7 +52,7 @@ def get_ISIN_download_pdf(fund, ISIN_file = 'ISINs.csv', headless = False):
     print('\n\n')
 
     # Get the fund id
-    ISIN = scraper.find_fund(fund, nospace_fund + '.pdf')
+    ISIN = scraper.find_fund(fund, 'pdf_downloads/' + nospace_fund + '.pdf')
     print(f'ISIN for {fund} is {ISIN}')
     scraper.rename_downloads()
         
@@ -69,10 +69,6 @@ if __name__ == '__main__':
     if not os.path.exists('./pdf_downloads'):
         os.mkdir('./pdf_downloads')
         
-        
-    # Put your path to the chromedrive binaries here!!!
-    scraper = WebScraper('C:/Users/Ollie/Downloads/chromedriver_win32/chromedriver', headless = headless)
-    scraper.kill()
         
     # If the csvfile does not exist, fill in headers
     if not os.path.exists(csv_file):

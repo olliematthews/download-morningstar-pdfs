@@ -105,17 +105,33 @@ class WebScraper:
         search_button = self.browser.find_element_by_id('searchbutton')
         search_button.click()
         # TODO sort out explicit waits
-        sleep(2)
+
         while(1):
             try:
                 top_result = self.browser.find_element_by_xpath('//*[@id="fundFinderResultGrid"]/table/tbody/tr[1]')
+                name = top_result.find_element_by_tag_name('td').text.split('\n')[0]
+                continue_flag = False
+                for word in fund.split(' '):
+                    if not word in name:
+                        continue_flag = True
+                if continue_flag:
+                    continue
                 ISIN = top_result.get_attribute('isin')
                 top_result.click()
                 break
             except:
                 pass
             
-        sleep(2)
+        # Wait for page to load
+        while(1):
+            title = self.browser.find_elements_by_class_name('h2')
+            if len(title) > 0:
+                title_text = title[0].find_element_by_tag_name('span').text
+                if all([word in title_text for word in fund.split(' ')]):
+                    sleep(1)
+                    break
+            
+            
         annual_reports =  self.browser.find_elements_by_xpath('//*[contains(text(), "Annual report")]')
         if len(annual_reports) == 0:
             print('No annual reports found')
@@ -123,7 +139,7 @@ class WebScraper:
         else:
             print('Downloading...')
             annual_reports[0].click()   
-
+            print('clicked')
             download_name = []
             # Wait until download comes up in your directory
             while(len(download_name) == 0):

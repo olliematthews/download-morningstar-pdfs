@@ -54,7 +54,6 @@ class WebScraper:
         # Keep track of what the pdfs are downloaded as so that you can rename them after
         self.downloading = {}
                     
-        
     def rename_downloads(self):
         '''
         Rename the downloaded file. If it is already there, then just delete the download.
@@ -97,15 +96,31 @@ class WebScraper:
         # Switch to frame
         self.frame = self.browser.find_element_by_tag_name('iframe')
         self.browser.switch_to.frame(self.frame)
-        sleep(0.5)
+        # WebDriverWait(self.browser, self.wait_time).until(
+        #   expected_conditions.presence_of_element_located(
+        #     (By.ID, 'searchbutton'),
+        #   )
+        # )
+        WebDriverWait(self.browser, self.wait_time).until(
+          expected_conditions.invisibility_of_element_located(
+            (By.CLASS_NAME, 'k-loading-image'),
+          )
+        )
+        
         # Make search
         search_field = self.browser.find_element_by_id('FinderIsin')
         search_field.clear()
         search_field.send_keys(fund)
         search_field.send_keys(Keys.RETURN)
+        
+        WebDriverWait(self.browser, self.wait_time).until(
+          expected_conditions.invisibility_of_element_located(
+            (By.CLASS_NAME, 'k-loading-image'),
+          )
+        )
+
         # search_button = self.browser.find_element_by_id('searchbutton')
         # search_button.click()
-        sleep(1)
         # TODO sort out explicit waits
 
         while(1):
@@ -130,10 +145,8 @@ class WebScraper:
             if len(title) > 0:
                 title_text = title[0].find_element_by_tag_name('span').text
                 if all([word in title_text for word in fund.split(' ')]):
-                    sleep(1)
                     break
-            
-            
+                
         annual_reports =  self.browser.find_elements_by_xpath('//*[contains(text(), "Annual report")]')
         if len(annual_reports) == 0:
             print('No annual reports found')
@@ -174,7 +187,7 @@ class WebScraper:
                 
             # Catch any failed downloads
             if download_name in [val[0] for val in self.downloading.values()]:
-                lost_fund = [k for k, v in self.downloading.items() if v[0] == download_name]
+                lost_fund = [k for k, v in self.downloading.items() if v[0] == download_name][0]
                 self.downloading.pop(lost_fund)
                 print(f'Download of {fund} failed')
                 

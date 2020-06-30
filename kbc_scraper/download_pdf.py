@@ -8,13 +8,13 @@ from numpy import genfromtxt
 import csv
 import pickle
 
-def write_ISIN(ISIN_file, fund, ISIN):
+def write_ISIN(csv_file, fund, download_pdf, ISIN):
     '''
     Write a row to the ISIN file
 
     Parameters
     ----------
-    ISIN_file : str
+    csv_file : str
     fund : str
     ISIN : str
 
@@ -23,11 +23,12 @@ def write_ISIN(ISIN_file, fund, ISIN):
     None.
 
     '''
-    with open(ISIN_file, 'a', newline = '') as file:
+    with open(csv_file, 'a', newline = '') as file:
         writer = csv.writer(file)
-        writer.writerow([fund, ISIN])
+        print(fund)
+        writer.writerow([fund, download_pdf, ISIN])
     
-def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
+def get_ISIN_download_pdf(funds, csv_file = 'ISINs.csv', headless = False):
     '''
     Locate and download the most recent report for a fund, also save ISIN numbers.
 
@@ -35,7 +36,7 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
     ----------
     funds : list
         The funds to be found.
-    ISIN_file : str
+    csv_file : str
         The filename to which ISINs are written
     headless : boolean
         If True, browser is run headlessly
@@ -50,13 +51,13 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
         print(fund)
         nospace_fund = fund.replace(' ', '_')
         # Rename any downloaded pdfs as you go
-        renamed_files = scraper.rename_downloads_if_done()
+        downloaded_files = scraper.rename_downloads_if_done()
         # Add any renamed files to the ISIN doc
-        if len(renamed_files) > 0:
-            for fund_path in renamed_files:
-                temp_fund_name = fund_path.replace('./pdf_downloads/','').replace('.pdf','')
-                ISIN = ISINs.pop(temp_fund_name)
-                write_ISIN(ISIN_file, fund, ISIN)
+        if len(downloaded_files) > 0:
+            for fund_name in downloaded_files:
+                temp_fund_name = fund_name.replace(' ','_')
+                download_pdf, ISIN = ISINs.pop(temp_fund_name)
+                write_ISIN(csv_file, fund_name, download_pdf, ISIN)
                 
         
         print('\n\n')
@@ -64,17 +65,17 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
         print(f'Fund {i} of {n_funds} - {completion}% complete')
 
         # Get the fund id
-        ISIN, success = scraper.find_fund(fund, './pdf_downloads/' + nospace_fund + '.pdf')
+        ISIN, download_pdf = scraper.find_fund(fund, './pdf_downloads/' + nospace_fund + '.pdf')
         if ISIN is None:
             # If you can't find the fund, write not found in the ISIN doc
-            write_ISIN(ISIN_file, fund, 'Not Found')
-        elif not success:
+            write_ISIN(csv_file, fund, 'Not Found', 'Not Found')
+        elif download_pdf is None:
             # Write the fund ISIN into the csv straight away if there is no pdf. Otherwise, wait until the
             # pdf is found.
-            write_ISIN(ISIN_file, fund, ISIN)
+            write_ISIN(csv_file, fund, 'Not Found', ISIN)
         else:
             # If you are waiting for the pdf to download, store the ISIN temporarily
-            ISINs.update({nospace_fund : [ISIN]})
+            ISINs.update({nospace_fund : [download_pdf, ISIN]})
         
 
     scraper.rename_downloads()
@@ -82,25 +83,31 @@ def get_ISIN_download_pdf(funds, ISIN_file = 'ISINs.csv', headless = False):
 
 if __name__ == '__main__':
     headless = False
-    csv_file = 'ISINs.csv'
+    csv_file = 'info_file.csv'
     funds = []
     with open('kbc_funds.txt', 'r') as file:
         for line in file:
             funds.append(line.strip('\n'))
 
-    # Remove any uncompleted downloads
-    [os.remove(file) for file in os.listdir() if file.endswith('.crdownload') or file.endswith('.pdf')]
     # Create download folder
     if not os.path.exists('./pdf_downloads'):
         os.mkdir('./pdf_downloads')
-        
+    # Remove any uncompleted downloads
+    [os.remove('./pdf_downloads/' + file) for file in os.listdir('./pdf_downloads') if file.endswith('.crdownload')]
         
     # If the csvfile does not exist, fill in headers
     if not os.path.exists(csv_file):
-        with open('ISINs.csv', 'w') as file:
-            file.write('Funds,ISINs\n')
+        with open(csv_file, 'w') as file:
+            file.write('Fund,PDF Name,ISIN\n')
+        uncompleted_funds = funds
+    else:
+        entries = genfromtxt(csv_file, delimiter=',', dtype = str, skip_header = 1)
+    
+        completed_funds = list(entries[:,0]) if entries.shape[0] > 0 else []
+        # Make sure you do not run the process more than once for the same fund_id
+        uncompleted_funds = [f for f in funds if not f in completed_funds]
     
     
-    get_ISIN_download_pdf(funds, headless = headless)
+    get_ISIN_download_pdf(uncompleted_funds, csv_file, headless = headless)
     
             

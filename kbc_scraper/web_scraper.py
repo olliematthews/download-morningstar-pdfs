@@ -5,11 +5,11 @@ Contains WebScraper, a class for getting the ISIN number and downloading the lat
 
 import os
 from selenium import webdriver
-from time import sleep
+from time import sleep, time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
-
+from selenium.webdriver.common.keys import Keys
 
 class WebScraper:
     def __init__(self, driver_path, headless = True, wait_time = 5):
@@ -31,7 +31,7 @@ class WebScraper:
         '''
         self.wait_time = wait_time
         # We first download the file to the current working directory, then move it
-        download_dir = str(os.path.realpath(os.getcwd()))
+        download_dir = str(os.path.realpath('./pdf_downloads'))
         
         # Update browser options. This ensures that the pdf is downloaded instead of being viewed in chrome
         options = webdriver.ChromeOptions()
@@ -52,7 +52,7 @@ class WebScraper:
         self.browser = webdriver.Chrome(str(driver_path), options = options)
         
         # Keep track of what the pdfs are downloaded as so that you can rename them after
-        self.download_renames = {}
+        self.downloading = {}
                     
         
     def rename_downloads(self):
@@ -65,19 +65,15 @@ class WebScraper:
             flag = True
             os_files = os.listdir()
             # Check that all the download files are in the current directory
-            for filename in self.download_renames.keys():
+            for download_name, delete in self.downloading.values():
                 flag = flag and filename in os_files
                 
             sleep(1)
+            
+        for download_name, delete in self.downloading.values():
+            if delete:
+                os.remove('pdf_downloads/' + download_name)
         
-        print('Renaming the download files')
-        # If the file is already there, just delete the downloaded file instead
-        for download_path, save_path in self.download_renames.items():
-            try:
-                os.rename(download_path, save_path)
-            except FileExistsError:
-                os.remove(download_path)
-
             
     def find_fund(self, fund, save_path = None):
         '''
@@ -92,7 +88,8 @@ class WebScraper:
         Returns
         -------
         ISIN : int
-        success : bool
+        download_pdf : str
+            Name of the pdf for the fund
         '''
         # First, we need to go to the search page and switch to the correct frame
         self.browser.get('https://www.kbc.be/corporate/en/product/investments/fund-finder.html')
@@ -100,13 +97,15 @@ class WebScraper:
         # Switch to frame
         self.frame = self.browser.find_element_by_tag_name('iframe')
         self.browser.switch_to.frame(self.frame)
-        
+        sleep(0.5)
         # Make search
         search_field = self.browser.find_element_by_id('FinderIsin')
         search_field.clear()
         search_field.send_keys(fund)
-        search_button = self.browser.find_element_by_id('searchbutton')
-        search_button.click()
+        search_field.send_keys(Keys.RETURN)
+        # search_button = self.browser.find_element_by_id('searchbutton')
+        # search_button.click()
+        sleep(1)
         # TODO sort out explicit waits
 
         while(1):
@@ -123,8 +122,7 @@ class WebScraper:
                 top_result.click()
                 break
             except:
-                print('Fund not found')
-                return None, False
+                pass
             
         # Wait for page to load
         while(1):
@@ -139,21 +137,50 @@ class WebScraper:
         annual_reports =  self.browser.find_elements_by_xpath('//*[contains(text(), "Annual report")]')
         if len(annual_reports) == 0:
             print('No annual reports found')
-            return ISIN, False
+            return ISIN, None
         else:
             print('Downloading...')
-            annual_reports[0].click()   
-            print('clicked')
-            download_name = []
-            # Wait until download comes up in your directory
-            while(len(download_name) == 0):
-                # Find the name the file is being downloaded as
-                downloading_names = [filename for filename in os.listdir() if filename.endswith('crdownload')]
-                download_name = [filename for filename in downloading_names if not filename in self.download_renames.keys()]
-            download_name = download_name[0].replace('.crdownload','')
-            if not save_path is None:
-                self.download_renames.update({download_name : save_path})
-            return ISIN, True
+            for i in range(3):
+                annual_reports[0].click()   
+    
+                download_name = []
+                # Wait until download comes up in your directory
+                start_time = time()
+                while(len(download_name) == 0):
+                    # Find the name the file is being downloaded as
+                    downloading_names = [filename for filename in os.listdir('./pdf_downloads') if filename.endswith('crdownload')]
+                    download_name = [filename for filename in downloading_names if not filename in [v[0] for v in self.downloading.values()]]
+                    if time() > start_time + 1:
+                        break
+                    
+                if len(download_name) == 0:
+                    continue
+                else:
+                    download_name = download_name[0].replace('.crdownload','')
+                    break
+            if i >= 3:
+                raise Exception
+            # Save the download name, with a boolean to indicate whether to 
+            # delete it after or not (if it has already been downloaded)
+            try:
+                root_download_name_index = download_name.index('(')
+                root_download_name = download_name[:root_download_name_index].replace(' ', '.pdf')
+                delete = True
+
+            except:
+                delete = False
+                root_download_name = download_name
+                
+                
+            # Catch any failed downloads
+            if download_name in [val[0] for val in self.downloading.values()]:
+                lost_fund = [k for k, v in self.downloading.items() if v[0] == download_name]
+                self.downloading.pop(lost_fund)
+                print(f'Download of {fund} failed')
+                
+            self.downloading.update({fund: [download_name, delete]})
+
+            return ISIN, root_download_name
         
     def rename_downloads_if_done(self):
         '''
@@ -163,21 +190,21 @@ class WebScraper:
         renamed - list:
             A list containing the downloaded files which were renamed
         '''
-        renamed = []
+        downloaded = []
         to_pop = []
         # If the file is already there, just delete the downloaded file instead
-        for download_path, save_path in self.download_renames.items():
+        for fund, (download_name, delete) in self.downloading.items():
+            download_path = 'pdf_downloads/' + download_name
             if os.path.exists(download_path):
-                print(f'Renaming {download_path} to {save_path}')
-                renamed.append(self.download_renames[download_path])
-                to_pop.append(download_path)
-                try:
-                    os.rename(download_path, save_path)
-                except FileExistsError:
+                downloaded.append(fund)
+                to_pop.append(fund)
+                if delete:
+                    print('Deleting copy of PDF')
                     os.remove(download_path)
+
         for key in to_pop:
-            self.download_renames.pop(key)
-        return renamed
+            self.downloading.pop(key)
+        return downloaded
 
     def kill(self):
         '''
